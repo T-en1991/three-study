@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTK.js VTP Parser</title>
+  <!-- 导入 VTK.js 库 -->
+  <script src="https://unpkg.com/vtk.js"></script>
+</head>
+<body>
+<script>
+  // 创建一个渲染器
+  const renderer = vtk.Rendering.Core.vtkRenderer.newInstance();
+  console.log(vtk)
+
+
+  // 创建一个XML读取器，用于读取VTP文件
+  const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+
+  // 加载VTP文件
+  reader.setUrl('./public/fd.vtp').then(() => {
+    reader.loadData().then(() => {
+      console.log(reader.getOutputData,111)
+      // 获取VTP数据对象
+      const polyData = reader.getOutputData(0);
+
+      console.log(polyData.getPointData().getArrayByName('gap_distance').getData(),222)
+
+
+      // 从数据对象中提取点数据、面数据等
+      const points = polyData.getPoints();
+      const polys = polyData.getPolys();
+      // 在控制台打印点数据
+      console.log('Points:', points.getNumberOfPoints());
+      console.log(polyData.getPoints(), points.getData(), polys,111)
+    });
+  });
+
+</script>
+</body>
+</html>
