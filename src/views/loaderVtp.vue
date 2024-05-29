@@ -156,28 +156,29 @@ const generateBloodMesh=async ()=>{
   geometry.setIndex(new THREE.BufferAttribute(connectivityArray, 1)) // 设置多边形的连接性
   //region 这是线的
   // 创建Three.js中的网格对象
-  const material=new THREE.LineBasicMaterial(
-      {
-        transparent:true,
-        linewidth:1,
-        opacity:0.25,
-      }
-  )
-  // 设置材质
-  const mesh = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), material)
+  // const material=new THREE.LineBasicMaterial(
+  //     {
+  //       transparent:true,
+  //       linewidth:1,
+  //       opacity:0.25,
+  //     }
+  // )
+  // // 设置材质
+  // const mesh = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), material)
 
   //endregion
 
   // // //region  这是面的
-  // const material=new THREE.MeshBasicMaterial(
-  //   {
-  //     transparent:true,
-  //     opacity:0.51,
-  //     depthWrite:false
-  //   }
-  // )
-  // // 设置材质
-  // const mesh = new THREE.Mesh(geometry, material)
+  const material=new THREE.MeshStandardMaterial(
+    {
+      transparent:true,
+      opacity:0.51,
+      color:0xffffff,
+      depthWrite:false
+    }
+  )
+  // 设置材质
+  const mesh = new THREE.Mesh(geometry, material)
 
   // // //endregion
 
