@@ -1,5 +1,10 @@
 <template>
   <div class="box">
+    <div class="centerlines">
+      <ul class="block" @click="chooseCenterline">
+        <li v-for="(item,index) in centerlines" :style="{color:'#'+colors[index].toString(16)}" :data-name="index" :key="index">centerlines{{index+1}}</li>
+      </ul>
+    </div>
     <div ref="can"></div>
   </div>
 
@@ -10,10 +15,10 @@ import {nextTick, onMounted, ref} from 'vue'
 import * as THREE from 'three'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 import vtkXMLPolyDataReader from '@kitware/vtk.js/IO/XML/XMLPolyDataReader'
-import {centerline1,centerline2,colors} from '../common/centerline'
+import {centerlines,colors} from '../common/centerline'
+import * as events from "events"
 
 const can = ref<HTMLDivElement>()
-const lines=[centerline1,centerline2]
 
 const threeState={
   scene: new THREE.Scene(),
@@ -33,9 +38,9 @@ onMounted( () => {
  */
 const init=async ()=>{
   // 生成支架
-  const supportMesh= await generateSupportMesh()
+  await generateSupportMesh()
   // 生成血管
-  const bloodMesh= await generateBloodMesh()
+  await generateBloodMesh()
 
   // 生成中心线
   generateCenterLines()
@@ -47,9 +52,8 @@ const init=async ()=>{
 
   // 初始化场景中心
   initSceneCenter()
-  // 将网格对象添加到场景中
-  threeState.scene.add(supportMesh)
-  threeState.scene.add(bloodMesh)
+
+
   // 设置相机位置
   initCameraPosition()
   //初始化渲染器
@@ -68,30 +72,42 @@ const init=async ()=>{
 *@params
 */
 const generateCenterLines=()=>{
-  const meshArr=[]
-  for (let i=0;i<lines.length;i++){
+  const meshArr: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>[] = []
+  for (let i=0;i<centerlines.length;i++){
     // 生成 TubeGeometry
-    const tubeGeometry = createTubeGeometryFromPoints(lines[i])
+    const tubeGeometry = createTubeGeometryFromPoints(centerlines[i])
 
     // 创建管道网格
-    const tubeMaterial = new THREE.MeshBasicMaterial({ color: colors[i] ,transparent:true,opacity:0.5})
+    const tubeMaterial = new THREE.MeshBasicMaterial({ color: colors[i] ,transparent:true,opacity:0.8,side:THREE.DoubleSide})
     const tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial)
     meshArr.push(tubeMesh)
     // 将管道网格添加到场景中
     threeState.scene.add(tubeMesh)
   }
   raycasterWatch(meshArr)
+
 }
+
+/**
+*@author gute
+*@Description 2024/5/30:选择中心线
+*@params
+*/
+const chooseCenterline=(e:events)=>{
+  console.log(e.target.dataset.name)
+}
+
 
 /**
 *@author gute
 *@Description 2024/5/28:创建tube体
 *@params
 */
-const createTubeGeometryFromPoints=(pointsString:string, tubularSegments = 64, radius = 0.05, radialSegments = 8, closed = false)=>{
+const createTubeGeometryFromPoints=(pointsString:number[], tubularSegments = 2000, radius = 0.05, radialSegments = 8, closed = false)=>{
   const points = parsePoints(pointsString)
   const path = createPath(points)
   const tubeGeometry = new THREE.TubeGeometry(path, tubularSegments, radius, radialSegments, closed)
+
   return tubeGeometry
 }
 
@@ -100,8 +116,8 @@ const createTubeGeometryFromPoints=(pointsString:string, tubularSegments = 64, r
 *@Description 2024/5/28:获取点
 *@params
 */
-const parsePoints=(pointsString:string)=> {
-  const pointsArray = pointsString.split(',').map(Number)
+const parsePoints=(pointsArray:number[])=> {
+  // const pointsArray = pointsString.split(',').map(Number)
   const points = []
   for (let i = 0; i < pointsArray.length; i += 3) {
     points.push(new THREE.Vector3(pointsArray[i], pointsArray[i + 1], pointsArray[i + 2]))
@@ -160,13 +176,12 @@ const generateBloodMesh=async ()=>{
   const material=new THREE.MeshPhongMaterial({
     side:THREE.DoubleSide,
     transparent:true,
-    opacity:0.7,
+    opacity:0.8,
     color:0x333333
   })
-  geometry.computeVertexNormals()
+  // geometry.computeVertexNormals()
   const mesh = new THREE.Mesh(geometry, material)
-
-  return mesh
+  threeState.scene.add(mesh)
 }
 
 /**
@@ -180,9 +195,14 @@ const initLight=()=>{
   threeState.scene.add( light )
 
   const point=new THREE.PointLight(0xffffff,20,0,0)
-  point.position.set( sceneCenter.value.x, sceneCenter.value.y,sceneCenter.value.z+200)
+  point.position.set( sceneCenter.value.x, sceneCenter.value.y,sceneCenter.value.z+100)
   threeState.scene.add(point)
 
+  // const DirectionalLight=new THREE.DirectionalLight(0xffffff,20)
+  // point.position.set( sceneCenter.value.x, sceneCenter.value.y,sceneCenter.value.z+100)
+  // threeState.scene.add(DirectionalLight)
+
+  threeState.scene.add(new THREE.PointLightHelper(point))
 
 }
 
@@ -192,9 +212,9 @@ const initLight=()=>{
 *@params
 */
 const generateTube=()=>{
-  const a=parsePoints(lines[0])
-  a.length=420
-  const taoguanPoints=a
+  const tubeLength=parsePoints(centerlines[0])
+  // tubeLength.length=420
+  const taoguanPoints=tubeLength.slice(100,200+100)
   const taoguanPath=createPath(taoguanPoints)
   const taoguanGeometry = new THREE.TubeGeometry(taoguanPath, 64, 0.6, 8, closed)
 // 创建管道网格
@@ -266,8 +286,7 @@ const generateSupportMesh=async ()=>{
   // 设置材质
   const mesh = new THREE.Mesh(geometry, material)
   mesh.geometry.attributes.color=new THREE.BufferAttribute(colors,3)
-
-  return mesh
+  threeState.scene.add(mesh)
 
 
 }
@@ -325,7 +344,7 @@ const initAxesHelper=()=>{
   threeState.scene.add(threeState.axesHelper)
 }
 
-const raycasterWatch=(meshArr:[])=>{
+const raycasterWatch=(meshArr:THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>[])=>{
   threeState.renderer.domElement.addEventListener('click', function (event) {
     // .offsetY、.offsetX以canvas画布左上角为坐标原点,单位px
     const px = event.offsetX
@@ -360,11 +379,13 @@ const raycasterWatch=(meshArr:[])=>{
   position: relative;
   top:0;
   left: 0;
-  .center-line{
+  .centerlines{
     position: absolute;
     top:200px;
     left: 0;
-
+    .block{
+      cursor: pointer;
+    }
   }
 }
 
