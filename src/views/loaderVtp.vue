@@ -53,7 +53,6 @@ const init=async ()=>{
   // 初始化场景中心
   initSceneCenter()
 
-
   // 设置相机位置
   initCameraPosition()
   //初始化渲染器
@@ -78,8 +77,10 @@ const generateCenterLines=()=>{
     const tubeGeometry = createTubeGeometryFromPoints(centerlines[i])
 
     // 创建管道网格
-    const tubeMaterial = new THREE.MeshBasicMaterial({ color: colors[i] ,transparent:true,opacity:0.8,side:THREE.DoubleSide})
+    const tubeMaterial = new THREE.MeshBasicMaterial({ color: colors[i] ,transparent:true,side:THREE.DoubleSide,depthTest:true})
+
     const tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial)
+    tubeMesh.renderOrder=9
     meshArr.push(tubeMesh)
     // 将管道网格添加到场景中
     threeState.scene.add(tubeMesh)
@@ -177,10 +178,11 @@ const generateBloodMesh=async ()=>{
     side:THREE.DoubleSide,
     transparent:true,
     opacity:0.8,
-    color:0x333333
+    color:0x333333,
   })
   // geometry.computeVertexNormals()
   const mesh = new THREE.Mesh(geometry, material)
+  mesh.renderOrder=10
   threeState.scene.add(mesh)
 }
 
@@ -198,9 +200,6 @@ const initLight=()=>{
   point.position.set( sceneCenter.value.x, sceneCenter.value.y,sceneCenter.value.z+100)
   threeState.scene.add(point)
 
-  // const DirectionalLight=new THREE.DirectionalLight(0xffffff,20)
-  // point.position.set( sceneCenter.value.x, sceneCenter.value.y,sceneCenter.value.z+100)
-  // threeState.scene.add(DirectionalLight)
 
   threeState.scene.add(new THREE.PointLightHelper(point))
 
@@ -365,8 +364,8 @@ const raycasterWatch=(meshArr:THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMa
     // intersects.length大于0说明，说明选中了模型
     if (intersects.length > 0) {
       // 选中模型的第一个模型，设置为红色
-      // intersects[0].object.material.color.set(0xfff000)
-      intersects[0].object.material.opacity=1
+      intersects[0].object.renderOrder=11
+      intersects[0].object.material.depthTest=false
     }
     threeState.renderer.render(threeState.scene,threeState.camera)
   })
