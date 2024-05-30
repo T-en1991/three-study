@@ -40,6 +40,8 @@ const init=async ()=>{
   // 生成中心线
   generateCenterLines()
 
+  // 初始化光源
+  initLight()
   // 生成套管
   generateTube()
 
@@ -136,53 +138,52 @@ const initOrbitControls1=()=>{
 */
 const generateBloodMesh=async ()=>{
   const reader = vtkXMLPolyDataReader.newInstance()
-  await reader.setUrl('/pro/mesh.vtp')
+  await reader.setUrl('/pro/aneurysm_mesh.vtp')
   await reader.loadData()
   const polyData = reader.getOutputData(0)
   // 提取点数据
   const points = polyData.getPoints()
   const pointData = polyData.getPointData()
   const polys=polyData.getPolys()
-  const normalsArray = new Float32Array(pointData.getNormals())
+  const normalsArray = new Float32Array(pointData.getNormals().getData())
+
   const  connectivity= parsePolysData(polys.getData())
   const connectivityArray= new Uint32Array(connectivity.connectivity)
 
   // 创建Three.js中的几何体对象
   const geometry = new THREE.BufferGeometry()
   const positions = new Float32Array(points.getData())
-
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   geometry.setAttribute('normal', new THREE.BufferAttribute(normalsArray, 3)) // 添加法向量属性
   geometry.setIndex(new THREE.BufferAttribute(connectivityArray, 1)) // 设置多边形的连接性
-  //region 这是线的
-  // 创建Three.js中的网格对象
-  // const material=new THREE.LineBasicMaterial(
-  //     {
-  //       transparent:true,
-  //       linewidth:1,
-  //       opacity:0.25,
-  //     }
-  // )
-  // // 设置材质
-  // const mesh = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), material)
 
-  //endregion
-
-  // // //region  这是面的
-  const material=new THREE.MeshStandardMaterial(
-    {
-      transparent:true,
-      opacity:0.51,
-      color:0xffffff,
-      depthWrite:false
-    }
-  )
-  // 设置材质
+  const material=new THREE.MeshPhongMaterial({
+    side:THREE.DoubleSide,
+    transparent:true,
+    opacity:0.7,
+    color:0x333333
+  })
+  geometry.computeVertexNormals()
   const mesh = new THREE.Mesh(geometry, material)
 
-  // // //endregion
-
   return mesh
+}
+
+/**
+ *@author gute
+ *@Description 2024/5/29:初始化光源
+ *@params
+ */
+const initLight=()=>{
+  const light = new THREE.AmbientLight( 0x404040 ) // 柔和的白光
+  light.intensity=60
+  threeState.scene.add( light )
+
+  const point=new THREE.PointLight(0xffffff,20,0,0)
+  point.position.set( sceneCenter.value.x, sceneCenter.value.y,sceneCenter.value.z+200)
+  threeState.scene.add(point)
+
+
 }
 
 /**
@@ -210,18 +211,18 @@ const generateTube=()=>{
  */
 const generateSupportMesh=async ()=>{
   const reader = vtkXMLPolyDataReader.newInstance()
-  await reader.setUrl('/pro/fd.vtp')
+  await reader.setUrl('/pro/fd_binary.vtp')
   await reader.loadData()
   // 获取VTP数据对象
   const polyData = reader.getOutputData(0)
+
   // 提取点数据
   const points = polyData.getPoints()
   const pointData = polyData.getPointData()
   const polys=polyData.getPolys()
-  const normalsArray = new Float32Array(pointData.getNormals())
+  const normalsArray = new Float32Array(pointData.getNormals().getData())
   const  connectivity = parsePolysData(polys.getData())
   const connectivityArray= new Uint32Array(connectivity.connectivity)
-
   const gapDistance=pointData.getArrayByName('gap_distance').getData()
   // const metalCoverageRatio=pointData.getArrayByName('metal_coverage_ratio').getData()
   // const poreDensity=pointData.getArrayByName('pore_density').getData()
@@ -234,7 +235,6 @@ const generateSupportMesh=async ()=>{
   geometry.setAttribute('normal', new THREE.BufferAttribute(normalsArray, 3)) // 添加法向量属性
   geometry.setIndex(new THREE.BufferAttribute(connectivityArray, 1)) // 设置多边形的连接性
   // geometry.setAttribute('offset', new THREE.BufferAttribute(offsetsArray, 3)) // 设置偏移信息
-
   // 计算模型的中心
   geometry.computeBoundingBox()
   sceneCenter.value = new THREE.Vector3()
