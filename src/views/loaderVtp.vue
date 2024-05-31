@@ -2,7 +2,7 @@
   <div class="box">
     <div class="centerlines">
       <ul class="block" @click="chooseCenterline">
-        <li v-for="(item,index) in centerlines" :style="{color:'#'+colors[index].toString(16)}" :data-name="index" :key="index">centerlines{{index+1}}</li>
+        <li v-for="(item,index) in centerlines" :style="{color:'#'+colors[index].toString(16)}" :data-name="'中心线'+index" :key="index">centerlines{{index+1}}</li>
       </ul>
     </div>
     <div ref="can"></div>
@@ -47,10 +47,12 @@ const init=async ()=>{
   // 生成中心线
   generateCenterLines()
 
-  // 初始化光源
-  initLight()
   // 生成套管
   generateTube()
+
+  // 初始化光源
+  initLight()
+
 
   // 初始化场景中心
   initSceneCenter()
@@ -83,13 +85,14 @@ const generateCenterLines=()=>{
 
     const tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial)
     tubeMesh.renderOrder=9
+    tubeMesh.name='中心线'+i
     meshArr.push(tubeMesh)
     threeState.groupCenterLine.add(tubeMesh)
     // 将管道网格添加到场景中
     // threeState.scene.add(tubeMesh)
   }
   threeState.scene.add(threeState.groupCenterLine)
-  raycasterWatch(meshArr)
+  // raycasterWatch(meshArr)
 
 }
 
@@ -108,13 +111,20 @@ const chooseCenterline=(e:events)=>{
       console.log(elements[i],2)
       const groups=elements[i].children
       const groupsLen=groups.length
+
       for (let j=0;j<groupsLen;j++){
-        groups[j].renderOrder=9
-        groups[j].material.depthTest=true
+
+        console.log(groups[j].name,2233)
+        if (e.target.dataset.name===groups[j].name) {
+          groups[j].renderOrder=11
+          groups[j].material.depthTest=false
+        }else{
+          groups[j].renderOrder=9
+          groups[j].material.depthTest=true
+        }
       }
     }
   }
-
 
   threeState.renderer.render(threeState.scene,threeState.camera)
 }
@@ -238,10 +248,11 @@ const generateTube=()=>{
   const taoguanPath=createPath(taoguanPoints)
   const taoguanGeometry = new THREE.TubeGeometry(taoguanPath, 64, 0.6, 8, closed)
 // 创建管道网格
-  const taoguanMaterial = new THREE.MeshBasicMaterial({ color: colors[0],side:THREE.DoubleSide,transparent:true,opacity:0.5 })
+  const taoguanMaterial = new THREE.MeshBasicMaterial({ color: colors[0],side:THREE.DoubleSide,transparent:true,opacity:1 })
   const taoguanMesh = new THREE.Mesh(taoguanGeometry, taoguanMaterial)
   threeState.scene.add(taoguanMesh)
 }
+
 
 
 /**
