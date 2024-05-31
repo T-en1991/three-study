@@ -24,7 +24,8 @@ const threeState={
   scene: new THREE.Scene(),
   renderer: new THREE.WebGLRenderer({ antialias: true }),
   axesHelper: new THREE.AxesHelper(1),
-  camera: new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000)
+  camera: new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000),
+  groupCenterLine:new THREE.Group()
 }
 const sceneCenter=ref<THREE.Vector3>(new THREE.Vector3(0,0,0))
 
@@ -37,6 +38,7 @@ onMounted( () => {
  *@params
  */
 const init=async ()=>{
+  threeState.groupCenterLine.name='中心线组'
   // 生成支架
   await generateSupportMesh()
   // 生成血管
@@ -82,9 +84,11 @@ const generateCenterLines=()=>{
     const tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial)
     tubeMesh.renderOrder=9
     meshArr.push(tubeMesh)
+    threeState.groupCenterLine.add(tubeMesh)
     // 将管道网格添加到场景中
-    threeState.scene.add(tubeMesh)
+    // threeState.scene.add(tubeMesh)
   }
+  threeState.scene.add(threeState.groupCenterLine)
   raycasterWatch(meshArr)
 
 }
@@ -96,6 +100,23 @@ const generateCenterLines=()=>{
 */
 const chooseCenterline=(e:events)=>{
   console.log(e.target.dataset.name)
+  console.log(threeState.scene,876)
+  const elements=threeState.scene.children
+  const len=elements.length
+  for (let i=0;i<len;i++){
+    if (elements[i].type==='Group'&&elements[i].name==='中心线组'){
+      console.log(elements[i],2)
+      const groups=elements[i].children
+      const groupsLen=groups.length
+      for (let j=0;j<groupsLen;j++){
+        groups[j].renderOrder=9
+        groups[j].material.depthTest=true
+      }
+    }
+  }
+
+
+  threeState.renderer.render(threeState.scene,threeState.camera)
 }
 
 
@@ -193,7 +214,7 @@ const generateBloodMesh=async ()=>{
  */
 const initLight=()=>{
   const light = new THREE.AmbientLight( 0x404040 ) // 柔和的白光
-  light.intensity=60
+  light.intensity=100
   threeState.scene.add( light )
 
   const point=new THREE.PointLight(0xffffff,20,0,0)
@@ -343,6 +364,11 @@ const initAxesHelper=()=>{
   threeState.scene.add(threeState.axesHelper)
 }
 
+/**
+*@author gute
+*@Description 2024/5/30:选择中心线
+*@params
+*/
 const raycasterWatch=(meshArr:THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>[])=>{
   threeState.renderer.domElement.addEventListener('click', function (event) {
     // .offsetY、.offsetX以canvas画布左上角为坐标原点,单位px
